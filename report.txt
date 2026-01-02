@@ -1,0 +1,26 @@
+estrutura dada pelo chatgpt:
+"Cria esta árvore (mesmo que vazia no início):
+crp_mini2/
+  README.md
+  requirements.txt
+  src/
+    main.py
+    ontology/
+      build_ontology.py
+      data_seed.py
+      queries.py
+    agents/
+      booking_agent.py
+      second_agent.py
+    ui/
+      cli.py
+    planning/
+      domain.pddl
+      problem.pddl
+      run_planner.py
+  report/
+    ijcai_report.tex  (ou .docx)
+
+requirements.txt (mínimo)
+- owlready2
+- unified-planning"

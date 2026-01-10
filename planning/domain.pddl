@@ -11,6 +11,8 @@
 
     (belongs ?e - exam ?g - group)
     (group_free ?g - group ?s - slot)
+
+    (period_ok ?e - exam ?s - slot)
   )
 
   (:action assign_exam
@@ -21,6 +23,7 @@
       (cap_ok ?e ?r)
       (belongs ?e ?g)
       (group_free ?g ?s)
+      (period_ok ?e ?s)
     )
     :effect (and
       (assigned ?e)

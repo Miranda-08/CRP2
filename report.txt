@@ -24,3 +24,12 @@ crp_mini2/
 requirements.txt (mínimo)
 - owlready2
 - unified-planning"
+
+problem.pddl gerado pelo chat:
+"A seguir tens um problem.pddl realista para o teu cenário:
+- 3 anos × 5 cadeiras = 15 exames por época
+- 2 épocas (normal + recurso) = 30 exames no total
+- 6 slots por época (N1..N6 e R1..R6)
+- Exames do mesmo ano não sobrepõem (usando group por ano: gY1, gY2, gY3)
+- Recurso só em slots de Recurso (isto exige um predicado period_ok(exam,slot) no domain)
+- Os exames de anos diferentes podem coincidir (porque são grupos diferentes)"

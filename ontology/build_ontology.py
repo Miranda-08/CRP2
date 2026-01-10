@@ -1,10 +1,9 @@
-from owlready2 import get_ontology, Thing, ObjectProperty, DataProperty, FunctionalProperty
+from owlready2 import Thing, ObjectProperty, DataProperty, FunctionalProperty
 
-def build_ontology(path: str = "room_mgmt.owl"):
-    onto = get_ontology("http://example.org/room_mgmt.owl")
 
+def build_ontology(onto):
     with onto:
-        # --- Classes base ---
+        # --- Base classes ---
         class Room(Thing): pass
         class RoomBooking(Thing): pass
 
@@ -32,6 +31,15 @@ def build_ontology(path: str = "room_mgmt.owl"):
             domain = [Activity]
             range = [Course]
 
+        # NEW: connect people to activities/courses (minimal, but useful)
+        class teaches(ObjectProperty):
+            domain = [Teacher]
+            range = [Activity]
+
+        class enrolledIn(ObjectProperty):
+            domain = [Student]
+            range = [Course]
+
         class bookingRoom(ObjectProperty, FunctionalProperty):
             domain = [RoomBooking]
             range = [Room]
@@ -49,7 +57,7 @@ def build_ontology(path: str = "room_mgmt.owl"):
             domain = [Activity]
             range = [int]
 
-        # Para já usamos strings ISO simples. Depois podemos evoluir.
+        # Using ISO strings for now
         class start(DataProperty, FunctionalProperty):
             domain = [RoomBooking]
             range = [str]
@@ -61,9 +69,8 @@ def build_ontology(path: str = "room_mgmt.owl"):
         class priority(DataProperty, FunctionalProperty):
             domain = [RoomBooking]
             range = [int]
-        
-        # --- Inferred / derived classes (we will assert membership via Python) ---
-        # AvailableRoom: sala que não está em OverBookedRoom (vamos marcar isso via agente depois)
+
+        # --- Inferred / derived classes (asserted via Python) ---
         class ConflictingBooking(RoomBooking): pass
         class MissingEquipmentBooking(RoomBooking): pass
         class UnderCapacityBooking(RoomBooking): pass
@@ -71,7 +78,4 @@ def build_ontology(path: str = "room_mgmt.owl"):
         class OverBookedRoom(Room): pass
         class AvailableRoom(Room): pass
 
-        #AvailableRoom.equivalent_to = [Room & ~OverBookedRoom]
-
-    onto.save(file=path, format="rdfxml")
     return onto

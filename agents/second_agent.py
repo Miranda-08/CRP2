@@ -2,25 +2,21 @@ from dataclasses import dataclass
 from typing import List, Optional, Tuple
 from ontology.reasoning import parse_iso, overlaps
 
+
 @dataclass
 class Suggestion:
     booking: str
     issue: str
     recommendation: str
 
+
 class AuditAgent:
     """
     Agent 2: audits inferred problems and proposes minimal-impact repairs.
-    Strategy:
-      - For time conflicts, prefer moving the lowest-priority booking.
-      - Prefer same-time room change; otherwise propose rescheduling using a candidate grid.
-      - For under-capacity/equipment issues, propose moving that booking.
     """
 
     def __init__(self, onto):
         self.onto = onto
-
-        # Candidate time grid (can be expanded / generated later)
         self.candidate_times = [
             "2026-01-05T08:00|2026-01-05T10:00",
             "2026-01-05T13:00|2026-01-05T15:00",
@@ -82,10 +78,6 @@ class AuditAgent:
         return None
 
     def _find_conflict_pairs(self) -> List[Tuple[object, object]]:
-        """
-        Builds actual conflict pairs (b1,b2) for same-room overlaps,
-        to avoid treating each ConflictingBooking in isolation.
-        """
         bookings = list(self.onto.RoomBooking.instances())
         pairs = []
         for i in range(len(bookings)):
@@ -111,19 +103,19 @@ class AuditAgent:
 
     def generate_suggestions(self) -> List[Suggestion]:
         suggestions: List[Suggestion] = []
+        suggested_for = set()  # booking names that already got a suggestion
 
-        # --- Time conflicts: propose moving the lowest-priority booking only ---
-        seen = set()
+        # Time conflicts: propose moving the lowest-priority booking only
+        seen_pairs = set()
         for b1, b2 in self._find_conflict_pairs():
             key = tuple(sorted([b1.name, b2.name]))
-            if key in seen:
+            if key in seen_pairs:
                 continue
-            seen.add(key)
+            seen_pairs.add(key)
 
             p1 = int(getattr(b1, "priority", 0) or 0)
             p2 = int(getattr(b2, "priority", 0) or 0)
 
-            # move the lower priority one
             move = b1 if p1 <= p2 else b2
             keep = b2 if move == b1 else b1
 
@@ -149,8 +141,12 @@ class AuditAgent:
                         f"Conflict with {keep.name}. No alternative found; expand time grid or add rooms."
                     ))
 
-        # --- Under-capacity: fix that booking ---
+            suggested_for.add(move.name)
+
+        # Under-capacity: propose fix if not already suggested via time conflict
         for b in self.onto.UnderCapacityBooking.instances():
+            if b.name in suggested_for:
+                continue
             alt_room = self._suggest_room_same_time(b)
             if alt_room:
                 suggestions.append(Suggestion(b.name, "Under capacity", f"Move to room {alt_room} at the same time."))
@@ -160,9 +156,12 @@ class AuditAgent:
                     suggestions.append(Suggestion(b.name, "Under capacity", f"Reschedule to a slot with a suitable room: {alt}."))
                 else:
                     suggestions.append(Suggestion(b.name, "Under capacity", "No suitable room found; expand time grid or require new room."))
+            suggested_for.add(b.name)
 
-        # --- Missing equipment: fix that booking ---
+        # Missing equipment: propose fix if not already suggested via time conflict
         for b in self.onto.MissingEquipmentBooking.instances():
+            if b.name in suggested_for:
+                continue
             alt_room = self._suggest_room_same_time(b)
             if alt_room:
                 suggestions.append(Suggestion(b.name, "Missing equipment", f"Move to room {alt_room} at the same time."))
@@ -172,5 +171,6 @@ class AuditAgent:
                     suggestions.append(Suggestion(b.name, "Missing equipment", f"Reschedule: {alt}."))
                 else:
                     suggestions.append(Suggestion(b.name, "Missing equipment", "No alternative found; expand time grid or add equipment."))
+            suggested_for.add(b.name)
 
         return suggestions
